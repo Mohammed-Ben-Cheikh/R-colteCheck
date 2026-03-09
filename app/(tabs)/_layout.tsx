@@ -1,74 +1,60 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Redirect, Tabs } from "expo-router";
-import React from "react";
-import { ActivityIndicator, View } from "react-native";
+/**
+ * Main Tabs Layout
+ *
+ * Bottom tab navigation for the authenticated farmer.
+ * Three tabs: Dashboard, Parcels, Profile.
+ */
 
-import { HapticTab } from "@/components/haptic-tab";
-import { Colors } from "@/constants/theme";
-import { useAuth } from "@/context/auth-context";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Colors } from "@/src/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import React from "react";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const { user, initializing } = useAuth();
-
-  if (initializing) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (!user) {
-    return <Redirect href="/(auth)" />;
-  }
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textLight,
+        tabBarStyle: {
+          backgroundColor: Colors.white,
+          borderTopColor: Colors.border,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 4,
+        },
+        headerStyle: { backgroundColor: Colors.primary },
+        headerTintColor: Colors.white,
+        headerTitleStyle: { fontWeight: "600" },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Accueil",
+          title: "Tableau de bord",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" color={color} size={size} />
+            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="parcelles"
+        name="parcels"
         options={{
           title: "Parcelles",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="leaf" color={color} size={size} />
+            <Ionicons name="map-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="recoltes"
-        options={{
-          title: "Récoltes",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profil"
+        name="profile"
         options={{
           title: "Profil",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" color={color} size={size} />
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />
-      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }

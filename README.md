@@ -1,126 +1,252 @@
-# RécolteCheck
+# 🌾 RécolteCheck
 
-Application mobile React Native (Expo) pour la gestion des parcelles et le suivi des récoltes, avec authentification et synchronisation cloud via Firebase.
+Application mobile pour agriculteurs permettant de gérer les parcelles agricoles et suivre la production des récoltes de manière simple et centralisée.
 
-## Objectif
+> Remplace les cahiers papier et les notes informelles par une solution numérique qui améliore l'organisation, la traçabilité et la prise de décision.
 
-RécolteCheck permet à un agriculteur de :
+---
 
-- gérer son profil,
-- enregistrer ses parcelles,
-- suivre ses récoltes par zone,
-- consulter des indicateurs clés de production.
+## 📱 Fonctionnalités
 
-## Stack technique
+### Authentification
 
-- React Native + Expo Router
-- TypeScript
-- Firebase Authentication
-- Cloud Firestore
+- Inscription / Connexion par e-mail et mot de passe (Firebase Auth)
+- Session persistante (reconnexion automatique)
+- Déconnexion sécurisée
 
-## Installation
+### Profil agriculteur
 
-1. Cloner le dépôt
+- Affichage et modification du profil (nom, téléphone, exploitation, localisation)
 
-2. Installer les dépendances
+### Gestion des parcelles
+
+- Créer, modifier, supprimer une parcelle
+- Détails : nom, superficie, culture, date de plantation, période de récolte, notes
+- Liste de toutes les parcelles de l'agriculteur
+
+### Suivi des récoltes
+
+- Enregistrer une récolte liée à une parcelle
+- Informations : date, culture, poids (kg ou tonnes), notes
+- Historique complet par parcelle
+- Suppression d'enregistrements
+
+### Tableau de bord
+
+- Résumé : nombre de parcelles, nombre de récoltes, poids total
+- Récoltes récentes
+- Actions rapides
+
+---
+
+## 🏗 Architecture
+
+```
+R-colteCheck/
+├── app/                        # Expo Router – file-based navigation
+│   ├── _layout.tsx             # Root layout + AuthProvider + redirect logic
+│   ├── (auth)/                 # Auth screens group
+│   │   ├── _layout.tsx
+│   │   ├── login.tsx
+│   │   └── register.tsx
+│   ├── (tabs)/                 # Main tab navigation
+│   │   ├── _layout.tsx
+│   │   ├── index.tsx           # Dashboard
+│   │   ├── parcels.tsx         # Parcels list
+│   │   └── profile.tsx         # Profile
+│   ├── parcel/
+│   │   ├── add.tsx             # Add parcel form
+│   │   ├── [id].tsx            # Parcel details
+│   │   └── edit/[id].tsx       # Edit parcel form
+│   └── harvest/
+│       ├── add/[parcelId].tsx  # Add harvest form
+│       └── [parcelId].tsx      # Harvest history
+│
+├── src/                        # Application source code
+│   ├── components/             # Reusable UI components
+│   │   └── ui/
+│   │       ├── Button.tsx
+│   │       ├── Input.tsx
+│   │       ├── Card.tsx
+│   │       ├── StatCard.tsx
+│   │       ├── LoadingSpinner.tsx
+│   │       ├── EmptyState.tsx
+│   │       └── ConfirmDialog.tsx
+│   ├── constants/
+│   │   └── theme.ts            # Colors, spacing, fonts, shadows
+│   ├── context/
+│   │   └── AuthContext.tsx      # Auth state + Firebase Auth actions
+│   ├── firebase/
+│   │   └── config.ts           # Firebase initialization
+│   ├── services/               # Firestore CRUD operations
+│   │   ├── userService.ts
+│   │   ├── parcelService.ts
+│   │   └── harvestService.ts
+│   ├── types/
+│   │   └── index.ts            # TypeScript interfaces
+│   └── utils/
+│       ├── validation.ts       # Form validation helpers
+│       ├── formatters.ts       # Date/weight formatting
+│       └── errors.ts           # Firebase error messages (French)
+│
+├── assets/                     # Images, icons, splash
+├── package.json
+├── tsconfig.json
+└── app.json
+```
+
+### Principes appliqués
+
+- **DRY** – Composants et services réutilisables
+- **SRP** – Chaque fichier a une responsabilité unique
+- **Architecture modulaire** – Séparation claire des couches
+- **Conventions de nommage** – camelCase, fichiers descriptifs
+
+---
+
+## 🗄 Structure Firestore
+
+```
+users/
+  {userId}/
+    uid: string
+    name: string
+    email: string
+    phone: string
+    farmName: string
+    location: string
+    createdAt: string (ISO)
+    updatedAt: string (ISO)
+
+parcels/
+  {parcelId}/
+    userId: string          ← lien vers l'agriculteur
+    name: string
+    surface: number         ← en hectares
+    cropType: string
+    plantingDate: string    ← ISO date
+    harvestPeriod: string
+    notes: string
+    createdAt: string
+    updatedAt: string
+
+harvests/
+  {harvestId}/
+    parcelId: string        ← lien vers la parcelle
+    userId: string          ← lien vers l'agriculteur
+    date: string            ← ISO date
+    crop: string
+    weight: number
+    unit: "kg" | "tonnes"
+    notes: string
+    createdAt: string
+    updatedAt: string
+```
+
+**Règles de sécurité Firestore recommandées :**
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /parcels/{parcelId} {
+      allow read, write: if request.auth != null
+        && resource == null || resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+    }
+    match /harvests/{harvestId} {
+      allow read, write: if request.auth != null
+        && resource == null || resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+    }
+  }
+}
+```
+
+---
+
+## 🚀 Installation et lancement
+
+### Prérequis
+
+- Node.js ≥ 18
+- npm ou yarn
+- Expo CLI (`npm install -g expo-cli`)
+- Un projet Firebase configuré
+- Android Studio (émulateur Android) ou Xcode (simulateur iOS)
+- Ou l'application **Expo Go** sur votre téléphone
+
+### 1. Cloner le projet
+
+```bash
+git clone https://github.com/Mohammed-Ben-Cheikh/R-colteCheck.git
+cd R-colteCheck
+```
+
+### 2. Installer les dépendances
 
 ```bash
 npm install
 ```
 
-3. Créer un fichier `.env` à la racine en partant de `.env.example`
+### 3. Configurer Firebase
 
-4. Lancer l'application
+1. Créez un projet sur [Firebase Console](https://console.firebase.google.com/)
+2. Activez **Authentication** → méthode **Email/Password**
+3. Créez une base **Cloud Firestore**
+4. Copiez vos identifiants dans `src/firebase/config.ts` :
 
-```bash
-npm run start
+```typescript
+const firebaseConfig = {
+  apiKey: "VOTRE_API_KEY",
+  authDomain: "VOTRE_PROJET.firebaseapp.com",
+  projectId: "VOTRE_PROJET",
+  storageBucket: "VOTRE_PROJET.appspot.com",
+  messagingSenderId: "VOTRE_SENDER_ID",
+  appId: "VOTRE_APP_ID",
+};
 ```
 
-5. Tester sur :
+### 4. Créer les index Firestore
 
-- Android : `npm run android`
-- iOS : `npm run ios`
+Les requêtes Firestore avec `where` + `orderBy` nécessitent des index composites.
+Firebase vous affichera un lien dans la console pour les créer automatiquement au premier appel.
 
-## Variables d'environnement Firebase
+### 5. Lancer l'application
 
-Exemple dans `.env.example` :
+```bash
+npx expo start
+```
 
-- `EXPO_PUBLIC_FIREBASE_API_KEY`
-- `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`
-- `EXPO_PUBLIC_FIREBASE_PROJECT_ID`
-- `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
-- `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-- `EXPO_PUBLIC_FIREBASE_APP_ID`
+Puis :
 
-## Architecture de l'application
+- Appuyez sur `a` pour ouvrir sur Android
+- Appuyez sur `i` pour ouvrir sur iOS
+- Scannez le QR code avec Expo Go
 
-### Navigation
+---
 
-- Groupe `(auth)` : connexion / inscription.
-- Groupe `(tabs)` : espace privé de l'agriculteur.
+## 📦 Dépendances principales
 
-### Structure principale
+| Package                                     | Rôle                              |
+| ------------------------------------------- | --------------------------------- |
+| `expo`                                      | Framework React Native            |
+| `expo-router`                               | Navigation basée sur les fichiers |
+| `firebase`                                  | Auth + Firestore                  |
+| `@react-native-async-storage/async-storage` | Persistance de session            |
+| `@react-native-community/datetimepicker`    | Sélecteur de dates natif          |
+| `@expo/vector-icons` (Ionicons)             | Icônes                            |
+| `react-native-reanimated`                   | Animations                        |
+| `react-native-screens`                      | Navigation optimisée              |
+| `react-native-safe-area-context`            | Zones sûres (notch, etc.)         |
 
-- `app/(auth)` : écrans d'authentification.
-- `app/(tabs)/index.tsx` : tableau de bord (KPIs).
-- `app/(tabs)/parcelles.tsx` : CRUD des parcelles.
-- `app/(tabs)/recoltes.tsx` : CRUD des récoltes.
-- `app/(tabs)/profil.tsx` : profil agriculteur.
-- `context/auth-context.tsx` : gestion centralisée de session.
-- `lib/firebase.ts` : initialisation Firebase.
+---
 
-### Principes qualité
+## 📄 Licence
 
-- Nommage explicite des fonctions/variables.
-- Validation des entrées côté client avant écriture.
-- Gestion d'erreurs avec messages utilisateur.
-- DRY : logique d'auth centralisée dans un contexte.
-- SRP : chaque écran est focalisé sur une responsabilité métier.
-
-## Schéma Firestore proposé
-
-Collection racine : `farmers`
-
-- `farmers/{uid}`
-  - `fullName`, `email`, `phone`, `location`, `role`, `createdAt`, `updatedAt`
-  - sous-collection `parcels`
-    - `name`, `areaHectares`, `cropName`, `harvestPeriod`, `notes`, `createdAt`
-  - sous-collection `harvests`
-    - `parcelId`, `zoneName`, `weightKg`, `harvestedAt`, `notes`, `createdAt`
-
-## Dépendances externes et rôle
-
-- `expo-router` : routage par fichiers.
-- `firebase` : auth + base de données cloud.
-- `@react-native-async-storage/async-storage` : persistance locale de session Firebase.
-
-## Démonstration (25 min)
-
-Checklist suggérée :
-
-1. Authentification agriculteur (inscription + connexion)
-2. Création de parcelles
-3. Enregistrement de récoltes par zone
-4. Mise à jour profil
-5. Tableau de bord avec total de production
-
-## Planification Jira (proposition)
-
-- Epic 1 : Authentification et profil agriculteur
-- Epic 2 : Gestion des parcelles
-- Epic 3 : Gestion des récoltes
-- Epic 4 : Dashboard et qualité logicielle
-- Epic 5 : Documentation et préparation soutenance
-
-## Livrables couverts
-
-- Code modulaire TypeScript
-- Documentation d'architecture
-- Guide d'installation/configuration
-- Dépendances et rôles
-- Compatible Android/iOS via Expo
-
-## Notes Firebase
-
-- Activer Email/Password dans Firebase Authentication.
-- Configurer les règles Firestore pour isoler les données par `request.auth.uid`.
+Ce projet est sous licence MIT.
